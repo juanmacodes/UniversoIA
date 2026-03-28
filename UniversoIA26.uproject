@@ -3,6 +3,13 @@
 	"EngineAssociation": "5.7",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "UniversoIA26",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",
@@ -12,7 +19,16 @@
 			]
 		},
 		{
+<<<<<<< HEAD
 			"Name": "ActorPalette",
+=======
+			"Name": "ElevenVoice",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/1f706006858d482b9c13cf1f093c4ec6"
+		},
+		{
+			"Name": "MetaHumanCharacter",
+>>>>>>> 0caca766ca672f27cd3c0a9ed22e6a7448590678
 			"Enabled": true
 		}
 	]
