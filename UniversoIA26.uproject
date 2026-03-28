@@ -20,14 +20,20 @@
 		},
 		{
 <<<<<<< HEAD
+<<<<<<< HEAD
 			"Name": "ActorPalette",
 =======
+=======
+>>>>>>> 0caca766ca672f27cd3c0a9ed22e6a7448590678
 			"Name": "ElevenVoice",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/1f706006858d482b9c13cf1f093c4ec6"
 		},
 		{
 			"Name": "MetaHumanCharacter",
+<<<<<<< HEAD
+>>>>>>> 0caca766ca672f27cd3c0a9ed22e6a7448590678
+=======
 >>>>>>> 0caca766ca672f27cd3c0a9ed22e6a7448590678
 			"Enabled": true
 		}
