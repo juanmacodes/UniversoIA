@@ -8,7 +8,10 @@ public class UniversoIA26 : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core",
+            "CoreUObject",
+            "Engine",
+            "AudioMixer" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

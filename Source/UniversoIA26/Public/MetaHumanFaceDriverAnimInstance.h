@@ -1,3 +1,5 @@
+// MetaHumanFaceDriverAnimInstance.h
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -23,7 +25,28 @@ public:
 	float MouthNarrowAmount = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync")
+	float MouthWideAmount = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync")
 	float HeadBobAmount = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync|Visemes")
+	float VisemeMBP = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync|Visemes")
+	float VisemeFV = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync|Visemes")
+	float VisemeOO = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync|Visemes")
+	float VisemeEE = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync|Visemes")
+	float VisemeAA = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync|Visemes")
+	float VisemeSH = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LipSync")
 	bool bIsTalking = false;

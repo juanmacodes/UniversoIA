@@ -37,15 +37,80 @@ void UElevenMetaHumanLipSyncComponent::TickComponent(float DeltaTime, ELevelTick
 	TalkAmount = FMath::FInterpTo(TalkAmount, TargetTalkAmount, DeltaTime, InterpSpeed);
 	TalkAmount = FMath::Clamp(TalkAmount, 0.0f, 1.0f);
 
+	float SampledMBP = 0.0f;
+	float SampledFV = 0.0f;
+	float SampledOO = 0.0f;
+	float SampledEE = 0.0f;
+	float SampledAA = 0.0f;
+	float SampledSH = 0.0f;
+
+	SampleVisemesAtTime(
+		PlaybackTimeSec,
+		SampledMBP,
+		SampledFV,
+		SampledOO,
+		SampledEE,
+		SampledAA,
+		SampledSH);
+
+	VisemeMBP = FMath::FInterpTo(VisemeMBP, SampledMBP, DeltaTime, 18.0f);
+	VisemeFV = FMath::FInterpTo(VisemeFV, SampledFV, DeltaTime, 18.0f);
+	VisemeOO = FMath::FInterpTo(VisemeOO, SampledOO, DeltaTime, 18.0f);
+	VisemeEE = FMath::FInterpTo(VisemeEE, SampledEE, DeltaTime, 18.0f);
+	VisemeAA = FMath::FInterpTo(VisemeAA, SampledAA, DeltaTime, 18.0f);
+	VisemeSH = FMath::FInterpTo(VisemeSH, SampledSH, DeltaTime, 18.0f);
+
+	VisemeMBP = FMath::Clamp(VisemeMBP, 0.0f, 1.0f);
+	VisemeFV = FMath::Clamp(VisemeFV, 0.0f, 1.0f);
+	VisemeOO = FMath::Clamp(VisemeOO, 0.0f, 1.0f);
+	VisemeEE = FMath::Clamp(VisemeEE, 0.0f, 1.0f);
+	VisemeAA = FMath::Clamp(VisemeAA, 0.0f, 1.0f);
+	VisemeSH = FMath::Clamp(VisemeSH, 0.0f, 1.0f);
+
 	bIsTalking = (TalkAmount > SilenceThreshold);
 
 	const float TimeSec = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f;
 	const float Noise01 = FMath::Clamp(FMath::PerlinNoise1D(TimeSec * 3.0f) * 0.5f + 0.5f, 0.0f, 1.0f);
 
-	JawOpenAmount = FMath::Clamp(TalkAmount * JawCurveScale, 0.0f, 1.0f);
-	MouthOpenAmount = FMath::Clamp(TalkAmount * MouthCurveScale + (Noise01 * 0.03f), 0.0f, 1.0f);
-	MouthNarrowAmount = FMath::Clamp(TalkAmount * MouthNarrowScale + ((1.0f - TalkAmount) * 0.03f), 0.0f, 1.0f);
-	HeadBobAmount = FMath::Clamp(TalkAmount * HeadBobScale, 0.0f, 1.0f);
+	// Base por envelope + capa de visemas.
+	JawOpenAmount =
+		FMath::Clamp(
+			(TalkAmount * JawCurveScale) +
+			(VisemeAA * VisemeAAScale) +
+			(VisemeOO * 0.08f) -
+			(VisemeMBP * 0.45f),
+			0.0f,
+			1.0f);
+
+	MouthOpenAmount =
+		FMath::Clamp(
+			(TalkAmount * MouthOpenCurveScale) +
+			(VisemeAA * 0.20f) +
+			(VisemeEE * 0.05f) -
+			(VisemeMBP * 0.15f),
+			0.0f,
+			1.0f);
+
+	MouthNarrowAmount =
+		FMath::Clamp(
+			(VisemeOO * VisemeOOScale) +
+			(VisemeSH * VisemeSHScale) +
+			(VisemeFV * 0.05f),
+			0.0f,
+			1.0f);
+
+	MouthWideAmount =
+		FMath::Clamp(
+			(VisemeEE * VisemeEEScale) +
+			(TalkAmount * 0.04f),
+			0.0f,
+			1.0f);
+
+	HeadBobAmount =
+		FMath::Clamp(
+			(TalkAmount * HeadBobScale) + (Noise01 * 0.015f),
+			0.0f,
+			1.0f);
 
 	ApplyFaceDrive();
 }
@@ -64,6 +129,7 @@ void UElevenMetaHumanLipSyncComponent::ResetProceduralAudio()
 
 	ProceduralWave = nullptr;
 	EnvelopeSamples.Reset();
+	VisemeTimeline.Reset();
 
 	PlaybackTimeSec = 0.0f;
 	ClipDurationSec = 0.0f;
@@ -74,9 +140,18 @@ void UElevenMetaHumanLipSyncComponent::ResetProceduralAudio()
 	JawOpenAmount = 0.0f;
 	MouthOpenAmount = 0.0f;
 	MouthNarrowAmount = 0.0f;
+	MouthWideAmount = 0.0f;
 	HeadBobAmount = 0.0f;
-	bIsTalking = false;
 
+	VisemeMBP = 0.0f;
+	VisemeFV = 0.0f;
+	VisemeOO = 0.0f;
+	VisemeEE = 0.0f;
+	VisemeAA = 0.0f;
+	VisemeSH = 0.0f;
+
+	bIsTalking = false;
+	BlinkAlpha = 0.0f;
 	bInitialized = false;
 }
 
@@ -119,6 +194,17 @@ void UElevenMetaHumanLipSyncComponent::InitializeLipSyncFromSound(UAudioComponen
 	bInitialized = (AudioComponent != nullptr && ProceduralWave != nullptr);
 }
 
+void UElevenMetaHumanLipSyncComponent::SetPendingSpeechText(const FString& InText)
+{
+	PendingSpeechText = InText;
+}
+
+void UElevenMetaHumanLipSyncComponent::ConsumePCMBytesWithText(const TArray<uint8>& InPCMBytes, const FString& InText)
+{
+	PendingSpeechText = InText;
+	ConsumePCMBytes(InPCMBytes);
+}
+
 void UElevenMetaHumanLipSyncComponent::EnsureProceduralWave()
 {
 	if (ProceduralWave)
@@ -151,7 +237,6 @@ void UElevenMetaHumanLipSyncComponent::ConsumePCMBytes(const TArray<uint8>& InPC
 		return;
 	}
 
-	// Cada llamada representa un clip nuevo.
 	ResetProceduralAudio();
 	EnsureProceduralWave();
 	DetectFaceMeshInternal();
@@ -172,6 +257,8 @@ void UElevenMetaHumanLipSyncComponent::ConsumePCMBytes(const TArray<uint8>& InPC
 		? static_cast<float>(InPCMBytes.Num()) / static_cast<float>(SampleRate * BytesPerFrame)
 		: 0.0f;
 
+	BuildApproxVisemeTimelineFromText(PendingSpeechText, ClipDurationSec);
+
 	PlaybackTimeSec = 0.0f;
 	bClipActive = true;
 
@@ -191,7 +278,13 @@ void UElevenMetaHumanLipSyncComponent::ConsumePCMBytes(const TArray<uint8>& InPC
 		);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[LipSync] Clip queued: duration=%.3f sec, envelopeSamples=%d"), ClipDurationSec, EnvelopeSamples.Num());
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("[LipSync] Clip queued: duration=%.3f sec, envelopeSamples=%d, visemes=%d"),
+		ClipDurationSec,
+		EnvelopeSamples.Num(),
+		VisemeTimeline.Num());
 }
 
 void UElevenMetaHumanLipSyncComponent::BuildEnvelopeFromPCM16(const TArray<uint8>& InPCMBytes)
@@ -281,6 +374,230 @@ void UElevenMetaHumanLipSyncComponent::HandleClipFinished()
 	if (AudioComponent && AudioComponent->IsPlaying())
 	{
 		AudioComponent->Stop();
+	}
+}
+
+void UElevenMetaHumanLipSyncComponent::BuildApproxVisemeTimelineFromText(const FString& InText, float InDurationSec)
+{
+	VisemeTimeline.Reset();
+
+	if (InText.IsEmpty() || InDurationSec <= 0.0f)
+	{
+		return;
+	}
+
+	FString Upper = InText.ToUpper();
+
+	TArray<FString> Tokens;
+	TArray<float> TokenWeights;
+
+	auto AddToken = [&](const FString& Token, float Weight)
+		{
+			if (!Token.IsEmpty())
+			{
+				Tokens.Add(Token);
+				TokenWeights.Add(Weight);
+			}
+		};
+
+	for (int32 i = 0; i < Upper.Len();)
+	{
+		const TCHAR C = Upper[i];
+
+		if (FChar::IsWhitespace(C))
+		{
+			AddToken(TEXT(" "), 0.35f);
+			++i;
+			continue;
+		}
+
+		if (FChar::IsPunct(C))
+		{
+			AddToken(TEXT("|"), 0.30f);
+			++i;
+			continue;
+		}
+
+		const FString Two = (i + 1 < Upper.Len()) ? Upper.Mid(i, 2) : FString();
+		if (Two == TEXT("CH") || Two == TEXT("SH") || Two == TEXT("LL") || Two == TEXT("RR") ||
+			Two == TEXT("PH") || Two == TEXT("TH") || Two == TEXT("QU") || Two == TEXT("GU"))
+		{
+			float Weight = 1.0f;
+			if (Two == TEXT("CH") || Two == TEXT("SH"))
+			{
+				Weight = 1.15f;
+			}
+			else if (Two == TEXT("QU") || Two == TEXT("GU"))
+			{
+				Weight = 1.20f;
+			}
+
+			AddToken(Two, Weight);
+			i += 2;
+			continue;
+		}
+
+		FString OneChar;
+		OneChar.AppendChar(C);
+
+		float Weight = 1.0f;
+		if (OneChar == TEXT("A") || OneChar == TEXT("E") || OneChar == TEXT("I") || OneChar == TEXT("O") || OneChar == TEXT("U"))
+		{
+			Weight = 1.25f;
+		}
+		else if (OneChar == TEXT("M") || OneChar == TEXT("B") || OneChar == TEXT("P"))
+		{
+			Weight = 1.05f;
+		}
+
+		AddToken(OneChar, Weight);
+		++i;
+	}
+
+	if (Tokens.Num() == 0)
+	{
+		return;
+	}
+
+	float TotalWeight = 0.0f;
+	for (float W : TokenWeights)
+	{
+		TotalWeight += W;
+	}
+
+	if (TotalWeight <= KINDA_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	float Cursor = 0.0f;
+
+	for (int32 Index = 0; Index < Tokens.Num(); ++Index)
+	{
+		const FString& Token = Tokens[Index];
+		const float Duration = InDurationSec * (TokenWeights[Index] / TotalWeight);
+
+		FApproxVisemeKey Key;
+		Key.Type = DetectVisemeForToken(Token);
+		Key.StartTime = Cursor;
+		Key.EndTime = Cursor + Duration;
+
+		VisemeTimeline.Add(Key);
+		Cursor = Key.EndTime;
+	}
+
+	if (VisemeTimeline.Num() > 0)
+	{
+		VisemeTimeline.Last().EndTime = InDurationSec;
+	}
+}
+
+UElevenMetaHumanLipSyncComponent::EApproxViseme UElevenMetaHumanLipSyncComponent::DetectVisemeForToken(const FString& Token) const
+{
+	if (Token.IsEmpty() || Token == TEXT(" ") || Token == TEXT("|"))
+	{
+		return EApproxViseme::Silence;
+	}
+
+	if (Token == TEXT("M") || Token == TEXT("B") || Token == TEXT("P"))
+	{
+		return EApproxViseme::MBP;
+	}
+
+	if (Token == TEXT("F") || Token == TEXT("V") || Token == TEXT("PH"))
+	{
+		return EApproxViseme::FV;
+	}
+
+	if (Token == TEXT("O") || Token == TEXT("U") || Token == TEXT("W") || Token == TEXT("Q") || Token == TEXT("QU") || Token == TEXT("GU"))
+	{
+		return EApproxViseme::OO;
+	}
+
+	if (Token == TEXT("E") || Token == TEXT("I") || Token == TEXT("Y"))
+	{
+		return EApproxViseme::EE;
+	}
+
+	if (Token == TEXT("A"))
+	{
+		return EApproxViseme::AA;
+	}
+
+	if (Token == TEXT("CH") || Token == TEXT("SH") || Token == TEXT("J") || Token == TEXT("X"))
+	{
+		return EApproxViseme::SH;
+	}
+
+	return EApproxViseme::Rest;
+}
+
+void UElevenMetaHumanLipSyncComponent::SampleVisemesAtTime(
+	float TimeSec,
+	float& OutMBP,
+	float& OutFV,
+	float& OutOO,
+	float& OutEE,
+	float& OutAA,
+	float& OutSH) const
+{
+	OutMBP = 0.0f;
+	OutFV = 0.0f;
+	OutOO = 0.0f;
+	OutEE = 0.0f;
+	OutAA = 0.0f;
+	OutSH = 0.0f;
+
+	if (VisemeTimeline.Num() == 0)
+	{
+		return;
+	}
+
+	const float BlendPaddingSec = VisemeBlendPaddingMs / 1000.0f;
+
+	for (const FApproxVisemeKey& Key : VisemeTimeline)
+	{
+		const float Center = 0.5f * (Key.StartTime + Key.EndTime);
+		const float Half = 0.5f * (Key.EndTime - Key.StartTime) + BlendPaddingSec;
+
+		if (Half <= KINDA_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		const float Distance = FMath::Abs(TimeSec - Center);
+		if (Distance > Half)
+		{
+			continue;
+		}
+
+		float Weight = 1.0f - (Distance / Half);
+		Weight = FMath::Clamp(Weight, 0.0f, 1.0f);
+		Weight = FMath::InterpEaseInOut(0.0f, 1.0f, Weight, 2.0f);
+
+		switch (Key.Type)
+		{
+		case EApproxViseme::MBP:
+			OutMBP = FMath::Max(OutMBP, Weight * VisemeMBPScale);
+			break;
+		case EApproxViseme::FV:
+			OutFV = FMath::Max(OutFV, Weight * VisemeFVScale);
+			break;
+		case EApproxViseme::OO:
+			OutOO = FMath::Max(OutOO, Weight * VisemeOOScale);
+			break;
+		case EApproxViseme::EE:
+			OutEE = FMath::Max(OutEE, Weight * VisemeEEScale);
+			break;
+		case EApproxViseme::AA:
+			OutAA = FMath::Max(OutAA, Weight * VisemeAAScale);
+			break;
+		case EApproxViseme::SH:
+			OutSH = FMath::Max(OutSH, Weight * VisemeSHScale);
+			break;
+		default:
+			break;
+		}
 	}
 }
 
@@ -412,12 +729,18 @@ void UElevenMetaHumanLipSyncComponent::ApplyFaceDrive()
 		FaceDriverAnim->JawOpenAmount = JawOpenAmount;
 		FaceDriverAnim->MouthOpenAmount = MouthOpenAmount;
 		FaceDriverAnim->MouthNarrowAmount = MouthNarrowAmount;
+		FaceDriverAnim->MouthWideAmount = MouthWideAmount;
 		FaceDriverAnim->HeadBobAmount = HeadBobAmount;
+		FaceDriverAnim->VisemeMBP = VisemeMBP;
+		FaceDriverAnim->VisemeFV = VisemeFV;
+		FaceDriverAnim->VisemeOO = VisemeOO;
+		FaceDriverAnim->VisemeEE = VisemeEE;
+		FaceDriverAnim->VisemeAA = VisemeAA;
+		FaceDriverAnim->VisemeSH = VisemeSH;
 		FaceDriverAnim->bIsTalking = bIsTalking;
 		FaceDriverAnim->BlinkAlpha = BlinkAlpha;
 	}
 
-	// Solo como fallback. Si ya mueves curvas en el AnimBP, déjalo en false.
 	if (bUseMorphTargetFallback)
 	{
 		for (const FName& Morph : JawMorphTargets)

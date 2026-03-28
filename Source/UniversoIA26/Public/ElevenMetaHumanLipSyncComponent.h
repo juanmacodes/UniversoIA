@@ -27,7 +27,13 @@ public:
 	void InitializeLipSyncFromSound(UAudioComponent* InAudioComponent, USoundWave* InSoundWave);
 
 	UFUNCTION(BlueprintCallable, Category = "Eleven|LipSync")
+	void SetPendingSpeechText(const FString& InText);
+
+	UFUNCTION(BlueprintCallable, Category = "Eleven|LipSync")
 	void ConsumePCMBytes(const TArray<uint8>& InPCMBytes);
+
+	UFUNCTION(BlueprintCallable, Category = "Eleven|LipSync")
+	void ConsumePCMBytesWithText(const TArray<uint8>& InPCMBytes, const FString& InText);
 
 	UFUNCTION(BlueprintCallable, Category = "Eleven|LipSync")
 	void ResetProceduralAudio();
@@ -49,10 +55,41 @@ protected:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
+	enum class EApproxViseme : uint8
+	{
+		Silence,
+		Rest,
+		MBP,
+		FV,
+		OO,
+		EE,
+		AA,
+		SH
+	};
+
+	struct FApproxVisemeKey
+	{
+		EApproxViseme Type = EApproxViseme::Rest;
+		float StartTime = 0.0f;
+		float EndTime = 0.0f;
+	};
+
+private:
 	void EnsureProceduralWave();
 	void BuildEnvelopeFromPCM16(const TArray<uint8>& InPCMBytes);
 	float GetEnvelopeValueAtTime(float TimeSec) const;
 	void HandleClipFinished();
+
+	void BuildApproxVisemeTimelineFromText(const FString& InText, float InDurationSec);
+	EApproxViseme DetectVisemeForToken(const FString& Token) const;
+	void SampleVisemesAtTime(
+		float TimeSec,
+		float& OutMBP,
+		float& OutFV,
+		float& OutOO,
+		float& OutEE,
+		float& OutAA,
+		float& OutSH) const;
 
 	bool DetectFaceMeshInternal();
 	int32 ScoreFaceMesh(USkeletalMeshComponent* Mesh) const;
@@ -110,6 +147,27 @@ private:
 	UPROPERTY(EditAnywhere, Category = "LipSync|Audio")
 	float EnvelopeGain = 1.25f;
 
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeBlendPaddingMs = 45.0f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeOOScale = 0.45f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeEEScale = 0.35f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeMBPScale = 0.90f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeFVScale = 0.25f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeAAScale = 0.35f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Visemes")
+	float VisemeSHScale = 0.20f;
+
 	UPROPERTY(EditAnywhere, Category = "LipSync|Face")
 	bool bDriveAnimInstance = true;
 
@@ -117,13 +175,16 @@ private:
 	bool bUseMorphTargetFallback = false;
 
 	UPROPERTY(EditAnywhere, Category = "LipSync|Face")
-	float JawCurveScale = 1.25f;
+	float JawCurveScale = 1.20f;
 
 	UPROPERTY(EditAnywhere, Category = "LipSync|Face")
-	float MouthCurveScale = 0.55f;
+	float MouthOpenCurveScale = 0.40f;
 
 	UPROPERTY(EditAnywhere, Category = "LipSync|Face")
-	float MouthNarrowScale = 0.18f;
+	float MouthNarrowCurveScale = 0.18f;
+
+	UPROPERTY(EditAnywhere, Category = "LipSync|Face")
+	float MouthWideCurveScale = 0.18f;
 
 	UPROPERTY(EditAnywhere, Category = "LipSync|Face")
 	float HeadBobScale = 0.10f;
@@ -152,6 +213,10 @@ private:
 	UPROPERTY(Transient)
 	TArray<float> EnvelopeSamples;
 
+	TArray<FApproxVisemeKey> VisemeTimeline;
+
+	FString PendingSpeechText;
+
 	float PlaybackTimeSec = 0.0f;
 	float ClipDurationSec = 0.0f;
 	bool bClipActive = false;
@@ -161,7 +226,15 @@ private:
 	float JawOpenAmount = 0.0f;
 	float MouthOpenAmount = 0.0f;
 	float MouthNarrowAmount = 0.0f;
+	float MouthWideAmount = 0.0f;
 	float HeadBobAmount = 0.0f;
+
+	float VisemeMBP = 0.0f;
+	float VisemeFV = 0.0f;
+	float VisemeOO = 0.0f;
+	float VisemeEE = 0.0f;
+	float VisemeAA = 0.0f;
+	float VisemeSH = 0.0f;
 
 	bool bIsTalking = false;
 	float BlinkAlpha = 0.0f;
