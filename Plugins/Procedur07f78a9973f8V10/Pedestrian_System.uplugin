@@ -1,0 +1,30 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "3.1",
+	"FriendlyName": "Procedural NPC Crowds V3",
+	"Description": "A framework for building a pedestrian system using behavior trees and standard character classes",
+	"Category": "KomodoBit Games",
+	"CreatedBy": "KomodoBit Games",
+	"CreatedByURL": "https://komodobitgames.com",
+	"DocsURL": "https://komodobits-organization.gitbook.io/procedural-npc-crowds-documentation-portal",
+	"MarketplaceURL": "",
+	"SupportURL": "https://discord.gg/GXZ7c74sTm",
+	"EngineVersion": "5.7.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "Pedestrian_System",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64",
+				"Mac",
+				"IOS",
+				"Android",
+				"Linux"
+			]
+		}
+	]
+}
