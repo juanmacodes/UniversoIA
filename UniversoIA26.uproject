@@ -24,7 +24,7 @@
 		},
 		{
 			"Name": "ElevenVoice",
-			"Enabled": true,
+			"Enabled": false,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/1f706006858d482b9c13cf1f093c4ec6"
 		},
 		{
