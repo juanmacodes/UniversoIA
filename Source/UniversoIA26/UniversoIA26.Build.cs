@@ -11,7 +11,16 @@ public class UniversoIA26 : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] { "Core",
             "CoreUObject",
             "Engine",
-            "AudioMixer" });
+            "AudioMixer",
+			"InputCore",
+    		"Json",
+    		"JsonUtilities",
+			"HTTP",
+"UMG",
+"Slate",
+"SlateCore"
+
+			 });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

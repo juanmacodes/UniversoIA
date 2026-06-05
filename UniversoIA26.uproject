@@ -38,6 +38,20 @@
 		{
 			"Name": "Pedestrian_System",
 			"Enabled": false
+		},
+		{
+			"Name": "RuntimeMetaHumanLipSync",
+			"Enabled": true
+		},
+		{
+			"Name": "RuntimeAudioImporter",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/81fd278e318e4235a028d3fdf46bf036"
+		},
+		{
+			"Name": "OpenAI",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/97eaf1e101ab4f29b5acbf7dacbd4d16"
 		}
 	]
 }

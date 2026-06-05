@@ -43,19 +43,19 @@ void UElevenTTSAsync::Activate()
 {
 	if (ApiKey.IsEmpty())
 	{
-		BroadcastError(TEXT("ElevenLabs API key vacia."));
+		BroadcastError(TEXT("ElevenLabs API key vacía."));
 		return;
 	}
 
 	if (VoiceId.IsEmpty())
 	{
-		BroadcastError(TEXT("VoiceId vacio."));
+		BroadcastError(TEXT("VoiceId vacío."));
 		return;
 	}
 
 	if (Text.IsEmpty())
 	{
-		BroadcastError(TEXT("Texto vacio."));
+		BroadcastError(TEXT("Texto vacío."));
 		return;
 	}
 
@@ -141,7 +141,7 @@ void UElevenTTSAsync::Activate()
 
 	if (!Request->ProcessRequest())
 	{
-		BroadcastError(TEXT("No se pudo lanzar la peticion HTTP a ElevenLabs."));
+		BroadcastError(TEXT("No se pudo lanzar la petición HTTP a ElevenLabs."));
 	}
 }
 
@@ -149,7 +149,7 @@ void UElevenTTSAsync::HandleHttpResponse(FHttpRequestPtr Request, FHttpResponseP
 {
 	if (!bWasSuccessful || !Response.IsValid())
 	{
-		BroadcastError(TEXT("La peticion a ElevenLabs fallo o no devolvio respuesta valida."));
+		BroadcastError(TEXT("La petición a ElevenLabs falló o no devolvió respuesta válida."));
 		return;
 	}
 
@@ -157,21 +157,21 @@ void UElevenTTSAsync::HandleHttpResponse(FHttpRequestPtr Request, FHttpResponseP
 	if (ResponseCode < 200 || ResponseCode >= 300)
 	{
 		const FString ErrorBody = Response->GetContentAsString();
-		BroadcastError(FString::Printf(TEXT("ElevenLabs devolvio HTTP %d: %s"), ResponseCode, *ErrorBody));
+		BroadcastError(FString::Printf(TEXT("ElevenLabs devolvió HTTP %d: %s"), ResponseCode, *ErrorBody));
 		return;
 	}
 
 	const TArray<uint8>& AudioBytes = Response->GetContent();
 	if (AudioBytes.Num() == 0)
 	{
-		BroadcastError(TEXT("ElevenLabs devolvio audio vacio."));
+		BroadcastError(TEXT("ElevenLabs devolvió audio vacío."));
 		return;
 	}
 
 	const int32 SampleRate = ParseSampleRateFromOutputFormat(OutputFormat);
 	if (SampleRate <= 0)
 	{
-		BroadcastError(TEXT("SampleRate invalido al procesar la respuesta."));
+		BroadcastError(TEXT("SampleRate inválido al procesar la respuesta."));
 		return;
 	}
 
